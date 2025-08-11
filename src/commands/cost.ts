@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { EvaluationConfig } from '../types';
 import { YamlParser } from '../lib/yaml-parser';
-import { SimpleTestDiscovery } from '../lib/simple-test-discovery';
 import { Logger } from '../utils/logger';
 
 interface CostOptions {
@@ -115,19 +114,13 @@ export class CostCommand {
       throw error;
     }
 
-    // Discover test cases
+    // Use test count from configuration only (avoid test discovery parsing issues)
     let totalTests = config.tests?.length || 0;
-    try {
-      const discovery = new SimpleTestDiscovery();
-      const discoveredTests = await discovery.discoverAllTests();
-      totalTests += discoveredTests.length;
-
-      if (options.verbose && discoveredTests.length > 0) {
-        Logger.success(`✓ Found ${discoveredTests.length} additional test case(s)`);
-      }
-    } catch (error) {
+    if (totalTests === 0) {
+      // Provide a reasonable default for cost estimation
+      totalTests = 1;
       if (options.verbose) {
-        Logger.warn(`Test discovery failed: ${error instanceof Error ? error.message : error}`);
+        Logger.info('ℹ No tests defined in configuration, using default count for estimation');
       }
     }
 
