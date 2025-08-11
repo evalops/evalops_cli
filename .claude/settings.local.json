@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(mkdir:*)",
+      "WebFetch(domain:tree-sitter.github.io)",
+      "Bash(npm uninstall:*)"
+    ],
+    "deny": []
+  }
+}
