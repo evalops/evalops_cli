@@ -1,0 +1,130 @@
+name: 'EvalOps CI/CD Pipeline'
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/*.eval.ts'
+      - '**/*.eval.js'
+      - 'evalops.yaml'
+      - 'budget.yaml'
+  push:
+    branches: [main]
+
+jobs:
+  cost-estimation:
+    name: 'Cost Estimation'
+    runs-on: ubuntu-latest
+    outputs:
+      estimated-cost: ${{ steps.cost.outputs.total-cost }}
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install EvalOps CLI
+        run: npm install -g evalops-cli
+
+      - name: Calculate Cost Estimate
+        id: cost
+        run: |
+          COST=$(evalops cost --format json | jq -r '.totalCost')
+          echo "total-cost=$COST" >> $GITHUB_OUTPUT
+          echo "### 💰 Cost Estimate: \$${COST}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Cost Gate Check
+        run: |
+          COST="${{ steps.cost.outputs.total-cost }}"
+          MAX_COST="10.00"
+          if (( $(echo "$COST > $MAX_COST" | bc -l) )); then
+            echo "❌ Cost estimate \$${COST} exceeds maximum \$${MAX_COST}"
+            exit 1
+          fi
+          echo "✅ Cost estimate \$${COST} is within budget"
+
+  quality-evaluation:
+    name: 'Quality Evaluation'
+    runs-on: ubuntu-latest
+    needs: cost-estimation
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for comparison
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Run EvalOps Evaluation
+        id: evaluation
+        uses: evalops/evalops-action@v1
+        with:
+          api-key: ${{ secrets.EVALOPS_API_KEY }}
+          config-file: ./evalops.yaml
+          budget-file: ./budget.yaml
+          environment: staging
+          check-budget: true
+          comment-pr: true
+          fail-on-violation: true
+          quality-threshold: '0.6'
+          cost-threshold: '10.00'
+
+  deploy-evaluation:
+    name: 'Deploy to Production'
+    runs-on: ubuntu-latest
+    needs: [cost-estimation, quality-evaluation]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install EvalOps CLI
+        run: npm install -g evalops-cli
+
+      - name: Deploy Evaluation
+        env:
+          EVALOPS_API_KEY: ${{ secrets.EVALOPS_API_KEY }}
+        run: |
+          # Deploy using official EvalOps Action with production settings
+          evalops upload --check-budget --budget-file budget.yaml --environment production
+          
+      - name: Create Release
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tagName = `evaluation-${Date.now()}`;
+            
+            github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tagName,
+              name: `Evaluation Release ${tagName}`,
+              body: `
+              ## EvalOps Evaluation Deployed
+              
+              - **Quality Score**: ${{ needs.quality-evaluation.outputs.quality-score || 'N/A' }}
+              - **Cost**: $${{ needs.cost-estimation.outputs.estimated-cost }}
+              - **Deploy Time**: ${new Date().toISOString()}
+              
+              This release contains the latest code evaluation configuration and has passed all quality gates.
+              `,
+              draft: false,
+              prerelease: false
+            });

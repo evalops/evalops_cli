@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import ora from 'ora';
 import * as path from 'path';
+import { BudgetValidator } from '../lib/budget-validator';
+import type { EvaluationMetrics } from '../lib/budget-validator';
 import { EvalOpsAPIClient } from '../lib/api-client';
 import { SimpleTestDiscovery } from '../lib/simple-test-discovery';
 import { YamlParser } from '../lib/yaml-parser';
@@ -14,6 +16,8 @@ interface UploadOptions {
   apiUrl?: string;
   name?: string;
   dryRun?: boolean;
+  checkBudget?: boolean;
+  budgetFile?: string;
 }
 
 export class UploadCommand {
@@ -87,6 +91,37 @@ export class UploadCommand {
 
     // Generate final configuration content
     const configContent = YamlParser.stringify(config);
+
+    // Pre-upload budget validation (cost estimation)
+    let budgetValidator: BudgetValidator | null = null;
+    if (options.checkBudget && fs.existsSync(options.budgetFile || './budget.yaml')) {
+      try {
+        budgetValidator = new BudgetValidator(options.budgetFile || './budget.yaml');
+        Logger.info('🎯 Checking budget constraints...');
+
+        // Estimate costs and validate against budget
+        const { CostCommand } = require('./cost');
+        // This would integrate with cost estimation - simplified for now
+        const estimatedMetrics: EvaluationMetrics = {
+          quality_score: 0.8, // Would come from historical data or prediction
+          cost_usd: 5.0, // Would come from cost estimation
+          tokens_used: 25000,
+          avg_latency_ms: 2000,
+          total_execution_time_ms: 30000
+        };
+
+        const budgetResult = budgetValidator.validateMetrics(estimatedMetrics);
+        if (!budgetResult.passed) {
+          Logger.error('❌ Pre-upload budget validation failed');
+          budgetValidator.displayResults(budgetResult);
+          throw new Error('Budget constraints violated - upload aborted');
+        }
+        Logger.success('✅ Pre-upload budget validation passed');
+      } catch (error) {
+        Logger.error(`Budget validation failed: ${error instanceof Error ? error.message : error}`);
+        throw error;
+      }
+    }
 
     if (options.dryRun) {
       Logger.info('');

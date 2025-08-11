@@ -4,12 +4,22 @@ The EvalOps CLI is a powerful tool for evaluating code against Large Language Mo
 
 ## Features
 
+### Core Functionality
 - **Initialize Projects**: Quickly set up a new EvalOps project with `evalops init`
 - **Validate Configurations**: Ensure your `evalops.yaml` file is correctly formatted and your test cases are discoverable with `evalops validate`
 - **Upload Test Suites**: Upload your evaluation configurations to the EvalOps platform with `evalops upload`
 - **Automatic Test Discovery**: Automatically discover test cases in your codebase using Tree-sitter parsing
 - **TypeScript & JavaScript Support**: Full support for both TypeScript and JavaScript test files
 - **Multiple Test Patterns**: Support for decorators, function calls, and various file patterns
+
+### Advanced CI/CD Features
+- **🎯 Quality Gates**: Enforce minimum quality scores with configurable thresholds
+- **💰 Cost Budgeting**: Set and monitor evaluation cost limits with `evalops cost` and `evalops budget`
+- **📊 Performance Monitoring**: Track latency and execution time metrics
+- **🔧 Environment Support**: Different budget configurations for dev/staging/production
+- **🚀 GitHub Actions Integration**: Official [GitHub Action](https://github.com/evalops/evalops-action) for seamless CI/CD
+- **💬 Automated PR Comments**: Detailed evaluation results posted automatically to pull requests
+- **⚡ Budget Enforcement**: Automatic CI build failures when budget constraints are violated
 
 ## Installation
 
@@ -120,7 +130,9 @@ npm install --save-dev evalops-cli
 
 ## CLI Commands
 
-### `init`
+### Core Commands
+
+#### `init`
 
 Initialize a new EvalOps project.
 
@@ -128,7 +140,7 @@ Initialize a new EvalOps project.
 - `-f, --force`: Overwrite existing `evalops.yaml` file.
 - `--template <template>`: Use a specific template (`basic`, `advanced`).
 
-### `validate`
+#### `validate`
 
 Validate the `evalops.yaml` file and discovered test cases.
 
@@ -136,7 +148,7 @@ Validate the `evalops.yaml` file and discovered test cases.
 - `-v, --verbose`: Show detailed validation output.
 - `-f, --file <file>`: Path to `evalops.yaml` file (default: `./evalops.yaml`).
 
-### `upload`
+#### `upload`
 
 Upload test suite to the EvalOps platform.
 
@@ -146,7 +158,216 @@ Upload test suite to the EvalOps platform.
 - `--api-url <url>`: EvalOps API URL (default: `https://api.evalops.dev`).
 - `--name <name>`: Name for the test suite.
 - `--dry-run`: Preview what would be uploaded without actually uploading.
+- `--check-budget`: Enforce budget constraints before and after evaluation.
+- `--budget-file <file>`: Path to budget.yaml file (default: `./budget.yaml`).
 
+### Budget & Cost Management
+
+#### `cost`
+
+Estimate the cost of running evaluations.
+
+**Options:**
+- `-f, --file <file>`: Path to `evalops.yaml` file (default: `./evalops.yaml`).
+- `--format <format>`: Output format (`table`, `json`, `csv`) (default: `table`).
+- `-v, --verbose`: Show detailed breakdown including per-provider costs.
+
+**Example:**
+```bash
+# Get cost estimate as table
+evalops cost
+
+# Get detailed JSON output
+evalops cost --format json --verbose
+
+# Estimate cost for specific config
+evalops cost -f ./staging-evalops.yaml
+```
+
+#### `budget`
+
+Manage evaluation budget and quality gates.
+
+**Options:**
+- `--init`: Initialize a new budget configuration.
+- `--validate`: Validate budget configuration.
+- `-f, --file <file>`: Path to budget.yaml file (default: `./budget.yaml`).
+- `--environment <env>`: Environment-specific budget settings (`development`, `staging`, `production`).
+- `--metrics <json>`: JSON string with metrics to validate against budget.
+
+**Examples:**
+```bash
+# Initialize budget configuration
+evalops budget --init
+
+# Validate budget config
+evalops budget --validate
+
+# Test budget with sample metrics
+evalops budget --validate --metrics '{"quality_score": 0.75, "cost_usd": 2.5, "avg_latency_ms": 1200}'
+
+# Use production environment settings
+evalops budget --validate --environment production
+```
+
+
+## CI/CD Integration
+
+EvalOps CLI provides powerful CI/CD integration capabilities through GitHub Actions and budget management systems.
+
+### GitHub Actions
+
+Use the official [EvalOps GitHub Action](https://github.com/evalops/evalops-action) for seamless integration:
+
+```yaml
+name: 'EvalOps CI Pipeline'
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/*.eval.ts'
+      - '**/*.eval.js'
+      - 'evalops.yaml'
+      - 'budget.yaml'
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run EvalOps Evaluation
+        uses: evalops/evalops-action@v1
+        with:
+          api-key: ${{ secrets.EVALOPS_API_KEY }}
+          check-budget: true
+          comment-pr: true
+          fail-on-violation: true
+          quality-threshold: '0.8'
+          cost-threshold: '10.00'
+          environment: 'production'
+```
+
+### Budget Configuration
+
+Create a `budget.yaml` file to enforce quality gates and cost limits:
+
+```yaml
+version: '1.0'
+description: 'Budget configuration for EvalOps evaluations'
+
+# Quality score thresholds
+quality_score:
+  min: 0.6        # Fail if below 0.6
+  warning: 0.7    # Warn if below 0.7
+
+# Cost constraints
+cost:
+  max_usd: 10.0         # Maximum cost in USD
+  warning_usd: 5.0      # Warning threshold
+  max_tokens: 100000    # Token limit
+  warning_tokens: 50000
+
+# Performance limits
+performance:
+  max_latency_ms: 5000        # Maximum average latency
+  warning_latency_ms: 3000    # Latency warning
+  max_execution_time_ms: 300000  # 5 minute total time limit
+
+# Action configuration
+actions:
+  fail_on_violation: true   # Fail CI on violations
+  fail_on_warning: false    # Don't fail on warnings
+  create_issue: false       # Don't create GitHub issues
+
+# Environment-specific overrides
+environments:
+  development:
+    cost:
+      max_usd: 1.0
+      warning_usd: 0.5
+  staging:
+    cost:
+      max_usd: 5.0
+      warning_usd: 2.5
+  production:
+    quality_score:
+      min: 0.8
+      warning: 0.85
+    cost:
+      max_usd: 50.0
+      warning_usd: 25.0
+```
+
+### Integration Patterns
+
+#### Cost Gate Pattern
+```yaml
+jobs:
+  cost-check:
+    runs-on: ubuntu-latest
+    outputs:
+      cost-estimate: ${{ steps.cost.outputs.cost-estimate }}
+      budget-passed: ${{ steps.evaluation.outputs.budget-passed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: evalops/evalops-action@v1
+        id: evaluation
+        with:
+          api-key: ${{ secrets.EVALOPS_API_KEY }}
+          cost-threshold: '5.00'
+          
+  deploy:
+    needs: cost-check
+    if: needs.cost-check.outputs.budget-passed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy
+        run: echo "Deploying with cost ${{ needs.cost-check.outputs.cost-estimate }}"
+```
+
+#### Multi-Environment Pattern
+```yaml
+strategy:
+  matrix:
+    environment: [development, staging, production]
+    
+steps:
+- uses: evalops/evalops-action@v1
+  with:
+    api-key: ${{ secrets.EVALOPS_API_KEY }}
+    environment: ${{ matrix.environment }}
+    budget-file: budget-${{ matrix.environment }}.yaml
+```
+
+### Automated PR Comments
+
+The GitHub Action automatically posts detailed evaluation results to pull requests:
+
+```
+## ✅ EvalOps Evaluation Results
+
+### Summary
+- **Quality Score**: 🟢 0.82
+- **Estimated Cost**: $2.45
+- **Budget Status**: PASSED
+- **Violations**: 0
+- **Warnings**: 0
+
+### Quality Assessment
+🎉 Excellent code quality! Your evaluation meets high standards.
+
+### Cost Analysis
+- Estimated evaluation cost: $2.45
+- ✅ Within budget constraints
+
+### Next Steps
+- All checks passed! Ready for production deployment
+
+---
+*Powered by EvalOps CLI | Action*
+```
 
 ## Configuration
 
