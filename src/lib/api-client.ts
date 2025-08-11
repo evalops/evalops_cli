@@ -1,4 +1,4 @@
-import { APIUploadRequest, APIUploadResponse } from '../types';
+import type { APIUploadRequest, APIUploadResponse } from '../types';
 
 export class EvalOpsAPIClient {
   private apiKey: string;
@@ -11,22 +11,22 @@ export class EvalOpsAPIClient {
 
   async uploadTestSuite(request: APIUploadRequest): Promise<APIUploadResponse> {
     const url = `${this.baseUrl}/api/v1/test-suites/import`;
-    
+
     try {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
-          'User-Agent': 'evalops-cli/1.0.0'
+          'User-Agent': 'evalops-cli/1.0.0',
         },
-        body: JSON.stringify(request)
+        body: JSON.stringify(request),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        
+
         try {
           const errorData = JSON.parse(errorText);
           if (errorData.message) {
@@ -38,7 +38,7 @@ export class EvalOpsAPIClient {
             errorMessage = errorText;
           }
         }
-        
+
         throw new Error(`Upload failed: ${errorMessage}`);
       }
 
@@ -47,7 +47,9 @@ export class EvalOpsAPIClient {
     } catch (error) {
       if (error instanceof Error) {
         if (error.name === 'TypeError' && error.message.includes('fetch')) {
-          throw new Error(`Network error: Unable to connect to ${url}. Please check your internet connection and API URL.`);
+          throw new Error(
+            `Network error: Unable to connect to ${url}. Please check your internet connection and API URL.`,
+          );
         }
         throw error;
       }
@@ -57,14 +59,14 @@ export class EvalOpsAPIClient {
 
   async validateApiKey(): Promise<boolean> {
     const url = `${this.baseUrl}/api/v1/auth/validate`;
-    
+
     try {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'User-Agent': 'evalops-cli/1.0.0'
-        }
+          Authorization: `Bearer ${this.apiKey}`,
+          'User-Agent': 'evalops-cli/1.0.0',
+        },
       });
 
       return response.ok;
@@ -75,14 +77,14 @@ export class EvalOpsAPIClient {
 
   async getTestSuite(id: string): Promise<any> {
     const url = `${this.baseUrl}/api/v1/test-suites/${id}`;
-    
+
     try {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'User-Agent': 'evalops-cli/1.0.0'
-        }
+          Authorization: `Bearer ${this.apiKey}`,
+          'User-Agent': 'evalops-cli/1.0.0',
+        },
       });
 
       if (!response.ok) {

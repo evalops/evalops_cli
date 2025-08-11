@@ -1,25 +1,42 @@
 {
-  "name": "evalops_cli",
+  "name": "evalops-cli",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "CLI tool for evaluating code against Large Language Models using the EvalOps platform",
+  "main": "dist/cli.js",
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/cli.ts",
     "start": "node dist/cli.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "lint": "echo 'No linter configured'",
-    "clean": "rm -rf dist"
+    "lint": "biome check .",
+    "lint:fix": "biome check . --write",
+    "format": "biome format . --write",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build",
+    "prepack": "npm run build"
   },
   "bin": {
     "evalops": "dist/cli.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "evalops",
+    "llm",
+    "evaluation",
+    "ai",
+    "testing",
+    "code-analysis",
+    "cli",
+    "machine-learning",
+    "language-models",
+    "typescript",
+    "javascript"
+  ],
+  "author": "EvalOps Team",
+  "license": "MIT",
   "type": "commonjs",
   "devDependencies": {
+    "@biomejs/biome": "^2.1.4",
     "@types/inquirer": "^9.0.9",
     "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
@@ -40,5 +57,21 @@
     "tree-sitter-javascript": "^0.23.1",
     "tree-sitter-typescript": "^0.23.2",
     "web-tree-sitter": "^0.25.8"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/evalops/evalops_cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/evalops/evalops_cli/issues"
+  },
+  "homepage": "https://github.com/evalops/evalops_cli#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ]
 }

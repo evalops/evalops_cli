@@ -1,9 +1,9 @@
 import * as fs from 'fs';
-import * as path from 'path';
 import inquirer from 'inquirer';
-import { EvaluationConfig } from '../types';
-import { InquirerPrompt, InquirerAnswers } from '../types/inquirer';
+import * as path from 'path';
 import { YamlParser } from '../lib/yaml-parser';
+import type { EvaluationConfig } from '../types';
+import type { InquirerAnswers, InquirerPrompt } from '../types/inquirer';
 import { Logger } from '../utils/logger';
 
 interface InitOptions {
@@ -14,7 +14,7 @@ interface InitOptions {
 export class InitCommand {
   static async execute(options: InitOptions): Promise<void> {
     const configPath = path.resolve('./evalops.yaml');
-    
+
     // Check if file already exists
     if (fs.existsSync(configPath) && !options.force) {
       Logger.error(`Configuration file already exists: ${configPath}`);
@@ -23,15 +23,15 @@ export class InitCommand {
     }
 
     Logger.info('Initializing new EvalOps project...');
-    
+
     let config: EvaluationConfig;
-    
+
     if (options.template) {
-      config = this.getTemplate(options.template);
+      config = InitCommand.getTemplate(options.template);
     } else {
-      config = await this.interactiveSetup();
+      config = await InitCommand.interactiveSetup();
     }
-    
+
     try {
       YamlParser.writeFile(configPath, config);
       Logger.success(`Created ${configPath}`);
@@ -56,7 +56,7 @@ export class InitCommand {
         name: 'description',
         message: 'Project description:',
         default: 'My EvalOps evaluation project',
-        validate: (input: string) => input.trim().length > 0 || 'Description is required'
+        validate: (input: string) => input.trim().length > 0 || 'Description is required',
       },
       {
         type: 'list',
@@ -64,21 +64,21 @@ export class InitCommand {
         message: 'Configuration version:',
         choices: [
           { name: '1.0', value: '1.0' },
-          { name: '2.0', value: '2.0' }
+          { name: '2.0', value: '2.0' },
         ],
-        default: '1.0'
+        default: '1.0',
       },
       {
         type: 'input',
         name: 'systemPrompt',
         message: 'System prompt:',
-        default: 'You are a helpful assistant.'
+        default: 'You are a helpful assistant.',
       },
       {
         type: 'input',
         name: 'userPrompt',
         message: 'User prompt template (use {{code}} for code variable):',
-        default: 'Analyze the following code: {{code}}'
+        default: 'Analyze the following code: {{code}}',
       },
       {
         type: 'checkbox',
@@ -89,21 +89,21 @@ export class InitCommand {
           { name: 'OpenAI GPT-3.5-turbo', value: 'openai/gpt-3.5-turbo' },
           { name: 'Anthropic Claude-2', value: 'anthropic/claude-2' },
           { name: 'Anthropic Claude-3-haiku', value: 'anthropic/claude-3-haiku' },
-          { name: 'Custom provider', value: 'custom' }
-        ]
+          { name: 'Custom provider', value: 'custom' },
+        ],
       },
       {
         type: 'input',
         name: 'customProvider',
         message: 'Enter custom provider (format: provider/model):',
         when: (answers: Record<string, unknown>) => (answers.providers as string[]).includes('custom'),
-        validate: (input: string) => /^[\w-]+\/[\w-]+$/.test(input) || 'Invalid format. Use: provider/model'
+        validate: (input: string) => /^[\w-]+\/[\w-]+$/.test(input) || 'Invalid format. Use: provider/model',
       },
       {
         type: 'confirm',
         name: 'addDefaultAsserts',
         message: 'Add default assertions?',
-        default: true
+        default: true,
       },
       {
         type: 'checkbox',
@@ -114,15 +114,15 @@ export class InitCommand {
           { name: 'Contains text', value: 'contains', checked: true },
           { name: 'LLM Judge', value: 'llm-judge', checked: true },
           { name: 'Regex match', value: 'regex' },
-          { name: 'JSON path', value: 'json-path' }
-        ]
-      }
+          { name: 'JSON path', value: 'json-path' },
+        ],
+      },
     ];
 
-    const answers = await inquirer.prompt(prompts as any) as InquirerAnswers;
+    const answers = (await inquirer.prompt(prompts as any)) as InquirerAnswers;
 
     // Handle custom provider
-    let providers = answers.providers.filter((p: string) => p !== 'custom');
+    const providers = answers.providers.filter((p: string) => p !== 'custom');
     if (answers.customProvider) {
       providers.push(answers.customProvider);
     }
@@ -136,28 +136,28 @@ export class InitCommand {
             defaultAsserts.push({
               type: 'contains' as const,
               value: 'summary',
-              weight: 0.5
+              weight: 0.5,
             });
             break;
           case 'llm-judge':
             defaultAsserts.push({
               type: 'llm-judge' as const,
               value: 'Is the analysis accurate and helpful?',
-              weight: 0.8
+              weight: 0.8,
             });
             break;
           case 'regex':
             defaultAsserts.push({
               type: 'regex' as const,
               value: '\\b(function|class|method)\\b',
-              weight: 0.3
+              weight: 0.3,
             });
             break;
           case 'json-path':
             defaultAsserts.push({
               type: 'json-path' as const,
               value: '$.summary',
-              weight: 0.4
+              weight: 0.4,
             });
             break;
         }
@@ -170,12 +170,12 @@ export class InitCommand {
       prompts: [
         {
           role: 'system',
-          content: answers.systemPrompt
+          content: answers.systemPrompt,
         },
         {
           role: 'user',
-          content: answers.userPrompt
-        }
+          content: answers.userPrompt,
+        },
       ],
       providers,
       defaultTest: defaultAsserts.length > 0 ? { assert: defaultAsserts } : undefined,
@@ -183,14 +183,14 @@ export class InitCommand {
       config: {
         iterations: 1,
         parallel: true,
-        timeout: 60
+        timeout: 60,
       },
       outputPath: 'results.json',
       outputFormat: 'json',
       sharing: {
         public: false,
-        allowForks: true
-      }
+        allowForks: true,
+      },
     };
 
     return config;
@@ -203,12 +203,12 @@ export class InitCommand {
       prompts: [
         {
           role: 'system',
-          content: 'You are a helpful assistant.'
+          content: 'You are a helpful assistant.',
         },
         {
           role: 'user',
-          content: 'Analyze the following code: {{code}}'
-        }
+          content: 'Analyze the following code: {{code}}',
+        },
       ],
       providers: ['openai/gpt-4'],
       defaultTest: {
@@ -216,23 +216,23 @@ export class InitCommand {
           {
             type: 'contains' as const,
             value: 'analysis',
-            weight: 0.5
+            weight: 0.5,
           },
           {
             type: 'llm-judge' as const,
             value: 'Is the analysis accurate?',
-            weight: 0.8
-          }
-        ]
+            weight: 0.8,
+          },
+        ],
       },
       tests: [],
       config: {
         iterations: 1,
         parallel: true,
-        timeout: 60
+        timeout: 60,
       },
       outputPath: 'results.json',
-      outputFormat: 'json'
+      outputFormat: 'json',
     };
 
     const advanced: EvaluationConfig = {
@@ -241,12 +241,13 @@ export class InitCommand {
       prompts: [
         {
           role: 'system',
-          content: 'You are an expert code reviewer and software architect.'
+          content: 'You are an expert code reviewer and software architect.',
         },
         {
           role: 'user',
-          content: 'Provide a comprehensive analysis of the following code, including:\n1. Code quality assessment\n2. Potential improvements\n3. Security considerations\n4. Performance implications\n\nCode: {{code}}'
-        }
+          content:
+            'Provide a comprehensive analysis of the following code, including:\n1. Code quality assessment\n2. Potential improvements\n3. Security considerations\n4. Performance implications\n\nCode: {{code}}',
+        },
       ],
       providers: [
         'openai/gpt-4',
@@ -254,46 +255,46 @@ export class InitCommand {
         {
           provider: 'openai',
           model: 'gpt-3.5-turbo',
-          temperature: 0.7
-        }
+          temperature: 0.7,
+        },
       ],
       defaultTest: {
         assert: [
           {
             type: 'contains' as const,
             value: 'quality',
-            weight: 0.3
+            weight: 0.3,
           },
           {
             type: 'contains' as const,
             value: 'improvement',
-            weight: 0.3
+            weight: 0.3,
           },
           {
             type: 'llm-judge' as const,
             value: 'Does the analysis cover code quality, improvements, security, and performance?',
-            weight: 0.9
+            weight: 0.9,
           },
           {
             type: 'regex' as const,
             value: '\\b(security|performance|optimization)\\b',
-            weight: 0.4
-          }
-        ]
+            weight: 0.4,
+          },
+        ],
       },
       tests: [],
       config: {
         iterations: 3,
         parallel: true,
         timeout: 120,
-        maxRetries: 1
+        maxRetries: 1,
       },
       outputPath: 'results.json',
       outputFormat: 'json',
       sharing: {
         public: false,
-        allowForks: true
-      }
+        allowForks: true,
+      },
     };
 
     return template === 'basic' ? basic : advanced;

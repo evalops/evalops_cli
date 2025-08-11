@@ -7,7 +7,6 @@ The EvalOps CLI is a powerful tool for evaluating code against Large Language Mo
 - **Initialize Projects**: Quickly set up a new EvalOps project with `evalops init`
 - **Validate Configurations**: Ensure your `evalops.yaml` file is correctly formatted and your test cases are discoverable with `evalops validate`
 - **Upload Test Suites**: Upload your evaluation configurations to the EvalOps platform with `evalops upload`
-- **Local Evaluations (Coming Soon)**: Run evaluations locally against different providers with `evalops run`
 - **Automatic Test Discovery**: Automatically discover test cases in your codebase using Tree-sitter parsing
 - **TypeScript & JavaScript Support**: Full support for both TypeScript and JavaScript test files
 - **Multiple Test Patterns**: Support for decorators, function calls, and various file patterns
@@ -148,14 +147,6 @@ Upload test suite to the EvalOps platform.
 - `--name <name>`: Name for the test suite.
 - `--dry-run`: Preview what would be uploaded without actually uploading.
 
-### `run`
-
-Run evaluation locally (not yet implemented).
-
-**Options:**
-- `-f, --file <file>`: Path to `evalops.yaml` file (default: `./evalops.yaml`).
-- `--provider <provider>`: Specify provider to use.
-- `--output <output>`: Output file path.
 
 ## Configuration
 

@@ -4,7 +4,7 @@ export class Logger {
   private static debugEnabled: boolean = false;
 
   static setDebug(debug: boolean): void {
-    this.debugEnabled = debug;
+    Logger.debugEnabled = debug;
   }
 
   static info(message: string): void {
@@ -24,7 +24,7 @@ export class Logger {
   }
 
   static debug(message: string): void {
-    if (this.debugEnabled) {
+    if (Logger.debugEnabled) {
       console.log(chalk.gray('🔍'), chalk.gray(message));
     }
   }

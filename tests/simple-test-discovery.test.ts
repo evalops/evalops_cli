@@ -1,7 +1,7 @@
-import { SimpleTestDiscovery } from '../src/lib/simple-test-discovery';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as os from 'os';
+import * as path from 'path';
+import { SimpleTestDiscovery } from '../src/lib/simple-test-discovery';
 
 describe('SimpleTestDiscovery', () => {
   let discovery: SimpleTestDiscovery;
@@ -23,7 +23,7 @@ describe('SimpleTestDiscovery', () => {
       const evalFile = path.join(tempDir, 'test.eval.ts');
       const testFile = path.join(tempDir, 'test.test.js');
       const regularFile = path.join(tempDir, 'regular.ts');
-      
+
       fs.writeFileSync(evalFile, 'content');
       fs.writeFileSync(testFile, 'content');
       fs.writeFileSync(regularFile, 'content');
@@ -31,22 +31,22 @@ describe('SimpleTestDiscovery', () => {
       process.chdir(tempDir);
       const files = await discovery.discoverTestFiles();
 
-      expect(files.some(f => f.endsWith('test.eval.ts'))).toBe(true);
-      expect(files.some(f => f.endsWith('test.test.js'))).toBe(true);
-      expect(files.some(f => f.endsWith('regular.ts'))).toBe(false);
+      expect(files.some((f) => f.endsWith('test.eval.ts'))).toBe(true);
+      expect(files.some((f) => f.endsWith('test.test.js'))).toBe(true);
+      expect(files.some((f) => f.endsWith('regular.ts'))).toBe(false);
     });
 
     it('should ignore node_modules and dist directories', async () => {
       const nodeModulesDir = path.join(tempDir, 'node_modules');
       const distDir = path.join(tempDir, 'dist');
-      
+
       fs.mkdirSync(nodeModulesDir);
       fs.mkdirSync(distDir);
-      
+
       const nodeModulesFile = path.join(nodeModulesDir, 'test.eval.ts');
       const distFile = path.join(distDir, 'test.eval.js');
       const validFile = path.join(tempDir, 'valid.eval.ts');
-      
+
       fs.writeFileSync(nodeModulesFile, 'content');
       fs.writeFileSync(distFile, 'content');
       fs.writeFileSync(validFile, 'content');
@@ -54,23 +54,23 @@ describe('SimpleTestDiscovery', () => {
       process.chdir(tempDir);
       const files = await discovery.discoverTestFiles();
 
-      expect(files.some(f => f.includes('node_modules'))).toBe(false);
-      expect(files.some(f => f.includes('dist'))).toBe(false);
-      expect(files.some(f => f.endsWith('valid.eval.ts'))).toBe(true);
+      expect(files.some((f) => f.includes('node_modules'))).toBe(false);
+      expect(files.some((f) => f.includes('dist'))).toBe(false);
+      expect(files.some((f) => f.endsWith('valid.eval.ts'))).toBe(true);
     });
 
     it('should use custom patterns when provided', async () => {
       const customFile = path.join(tempDir, 'custom.spec.ts');
       const evalFile = path.join(tempDir, 'test.eval.ts');
-      
+
       fs.writeFileSync(customFile, 'content');
       fs.writeFileSync(evalFile, 'content');
 
       process.chdir(tempDir);
       const files = await discovery.discoverTestFiles(['**/*.spec.ts']);
 
-      expect(files.some(f => f.endsWith('custom.spec.ts'))).toBe(true);
-      expect(files.some(f => f.endsWith('test.eval.ts'))).toBe(false);
+      expect(files.some((f) => f.endsWith('custom.spec.ts'))).toBe(true);
+      expect(files.some((f) => f.endsWith('test.eval.ts'))).toBe(false);
     });
   });
 
@@ -243,22 +243,32 @@ const someVar = 42;
     it('should discover tests from multiple files', async () => {
       const file1 = path.join(tempDir, 'test1.eval.ts');
       const file2 = path.join(tempDir, 'test2.eval.js');
-      
-      fs.writeFileSync(file1, `
+
+      fs.writeFileSync(
+        file1,
+        `
 @evalops_test({ description: 'Test 1' })
 function test1() { return 'test1'; }
-`);
+`,
+      );
 
-      fs.writeFileSync(file2, `
+      fs.writeFileSync(
+        file2,
+        `
 evalops_test({ description: 'Test 2' }, function() {
   return 'test2';
 });
-`);
+`,
+      );
 
       process.chdir(tempDir);
       const allTests = await discovery.discoverAllTests();
 
       expect(allTests).toHaveLength(2);
+
+      // Sort by description to ensure consistent test order
+      allTests.sort((a, b) => a.description.localeCompare(b.description));
+
       expect(allTests[0].description).toBe('Test 1');
       expect(allTests[1].description).toBe('Test 2');
     });
@@ -266,11 +276,14 @@ evalops_test({ description: 'Test 2' }, function() {
     it('should handle file parsing errors gracefully', async () => {
       const validFile = path.join(tempDir, 'valid.eval.ts');
       const invalidFile = path.join(tempDir, 'invalid.eval.ts');
-      
-      fs.writeFileSync(validFile, `
+
+      fs.writeFileSync(
+        validFile,
+        `
 @evalops_test({ description: 'Valid test' })
 function validTest() { return 'valid'; }
-`);
+`,
+      );
 
       // Create a file that will cause parsing errors
       fs.writeFileSync(invalidFile, 'This is not valid TypeScript content');

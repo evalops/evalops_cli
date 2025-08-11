@@ -1,22 +1,25 @@
-import { ConfigManager } from '../src/utils/config';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as os from 'os';
+import * as path from 'path';
+
+// Mock the entire os module to avoid redefining property issues
+jest.mock('os', () => ({
+  homedir: jest.fn(() => '/tmp/test-home'),
+  tmpdir: jest.requireActual('os').tmpdir,
+}));
+
+import { ConfigManager } from '../src/utils/config';
 
 describe('ConfigManager', () => {
   let tempDir: string;
-  let originalHome: string;
-
-  beforeAll(() => {
-    originalHome = os.homedir();
-  });
+  const mockHomedir = jest.mocked(os.homedir);
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'evalops-config-test-'));
-    
+
     // Mock os.homedir to return our temp directory
-    jest.spyOn(os, 'homedir').mockImplementation(() => tempDir);
-    
+    mockHomedir.mockReturnValue(tempDir);
+
     // Clear environment variables
     delete process.env.EVALOPS_API_KEY;
     delete process.env.EVALOPS_API_URL;
@@ -26,12 +29,7 @@ describe('ConfigManager', () => {
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
-    jest.restoreAllMocks();
-  });
-
-  afterAll(() => {
-    // Restore original homedir mock if it was mocked
-    jest.restoreAllMocks();
+    mockHomedir.mockReset();
   });
 
   describe('load', () => {
@@ -43,12 +41,15 @@ describe('ConfigManager', () => {
     it('should load config from file', () => {
       const configDir = path.join(tempDir, '.evalops');
       const configFile = path.join(configDir, 'config.json');
-      
+
       fs.mkdirSync(configDir, { recursive: true });
-      fs.writeFileSync(configFile, JSON.stringify({
-        apiKey: 'test-key',
-        apiUrl: 'https://api.test.com'
-      }));
+      fs.writeFileSync(
+        configFile,
+        JSON.stringify({
+          apiKey: 'test-key',
+          apiUrl: 'https://api.test.com',
+        }),
+      );
 
       const config = ConfigManager.load();
       expect(config.apiKey).toBe('test-key');
@@ -58,7 +59,7 @@ describe('ConfigManager', () => {
     it('should handle invalid JSON gracefully', () => {
       const configDir = path.join(tempDir, '.evalops');
       const configFile = path.join(configDir, 'config.json');
-      
+
       fs.mkdirSync(configDir, { recursive: true });
       fs.writeFileSync(configFile, 'invalid json');
 
@@ -72,7 +73,7 @@ describe('ConfigManager', () => {
     it('should save config to file', () => {
       const configToSave = {
         apiKey: 'new-test-key',
-        apiUrl: 'https://api.new.com'
+        apiUrl: 'https://api.new.com',
       };
 
       ConfigManager.save(configToSave);
@@ -97,7 +98,7 @@ describe('ConfigManager', () => {
   describe('getApiKey', () => {
     it('should return environment variable over config file', () => {
       process.env.EVALOPS_API_KEY = 'env-key';
-      
+
       // Also set up config file
       ConfigManager.save({ apiKey: 'file-key' });
 
@@ -149,9 +150,9 @@ describe('ConfigManager', () => {
     });
 
     it('should preserve other config values', () => {
-      ConfigManager.save({ 
+      ConfigManager.save({
         apiUrl: 'https://existing.com',
-        debug: true 
+        debug: true,
       });
 
       ConfigManager.setApiKey('new-key');
@@ -172,9 +173,9 @@ describe('ConfigManager', () => {
     });
 
     it('should preserve other config values', () => {
-      ConfigManager.save({ 
+      ConfigManager.save({
         apiKey: 'existing-key',
-        debug: false 
+        debug: false,
       });
 
       ConfigManager.setApiUrl('https://new.api.com');

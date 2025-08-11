@@ -1,21 +1,27 @@
 #!/usr/bin/env node
 
-import { Command } from 'commander';
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+  process.exit(1);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
 import chalk from 'chalk';
+import { Command } from 'commander';
 import dotenv from 'dotenv';
 import { InitCommand } from './commands/init';
-import { ValidateCommand } from './commands/validate';
 import { UploadCommand } from './commands/upload';
-import { RunCommand } from './commands/run';
+import { ValidateCommand } from './commands/validate';
 
 dotenv.config();
 
 const program = new Command();
 
-program
-  .name('evalops')
-  .description('CLI for evaluating code against LLMs using the EvalOps platform')
-  .version('1.0.0');
+program.name('evalops').description('CLI for evaluating code against LLMs using the EvalOps platform').version('1.0.0');
 
 program
   .command('init')
@@ -62,30 +68,14 @@ program
     }
   });
 
-program
-  .command('run')
-  .description('Run evaluation locally (not implemented yet)')
-  .option('-f, --file <file>', 'Path to evalops.yaml file', './evalops.yaml')
-  .option('--provider <provider>', 'Specify provider to use')
-  .option('--output <output>', 'Output file path')
-  .action(async (options) => {
-    try {
-      await RunCommand.execute(options);
-    } catch (error) {
-      console.error(chalk.red('Error:'), error instanceof Error ? error.message : error);
-      process.exit(1);
-    }
+program.on('command:*', (operands) => {
+  console.error(chalk.red(`Unknown command: ${operands[0]}`));
+  console.log('Available commands:');
+  program.commands.forEach((cmd) => {
+    console.log(`  ${cmd.name()} - ${cmd.description()}`);
   });
-
-program
-  .on('command:*', (operands) => {
-    console.error(chalk.red(`Unknown command: ${operands[0]}`));
-    console.log('Available commands:');
-    program.commands.forEach(cmd => {
-      console.log(`  ${cmd.name()} - ${cmd.description()}`);
-    });
-    process.exit(1);
-  });
+  process.exit(1);
+});
 
 if (process.argv.length < 3) {
   program.help();

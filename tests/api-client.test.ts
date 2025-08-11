@@ -39,7 +39,7 @@ describe('EvalOpsAPIClient', () => {
         id: 'test-suite-123',
         name: 'Test Suite',
         status: 'created' as const,
-        url: 'https://test.com/suites/test-suite-123'
+        url: 'https://test.com/suites/test-suite-123',
       };
 
       mockFetch.mockResolvedValue({
@@ -50,7 +50,7 @@ describe('EvalOpsAPIClient', () => {
       const request = {
         format: 'yaml' as const,
         content: 'test: content',
-        name: 'Test Suite'
+        name: 'Test Suite',
       };
 
       const result = await client.uploadTestSuite(request);
@@ -61,12 +61,12 @@ describe('EvalOpsAPIClient', () => {
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
-            'Authorization': 'Bearer test-api-key',
+            Authorization: 'Bearer test-api-key',
             'Content-Type': 'application/json',
-            'User-Agent': 'evalops-cli/1.0.0'
+            'User-Agent': 'evalops-cli/1.0.0',
           }),
-          body: JSON.stringify(request)
-        })
+          body: JSON.stringify(request),
+        }),
       );
     });
 
@@ -83,8 +83,7 @@ describe('EvalOpsAPIClient', () => {
         content: 'invalid: content',
       };
 
-      await expect(client.uploadTestSuite(request))
-        .rejects.toThrow('Upload failed: Invalid configuration');
+      await expect(client.uploadTestSuite(request)).rejects.toThrow('Upload failed: Invalid configuration');
     });
 
     it('should handle network errors', async () => {
@@ -95,8 +94,7 @@ describe('EvalOpsAPIClient', () => {
         content: 'test: content',
       };
 
-      await expect(client.uploadTestSuite(request))
-        .rejects.toThrow('Network error: Unable to connect');
+      await expect(client.uploadTestSuite(request)).rejects.toThrow('Network error: Unable to connect');
     });
 
     it('should handle non-JSON error responses', async () => {
@@ -112,8 +110,7 @@ describe('EvalOpsAPIClient', () => {
         content: 'test: content',
       };
 
-      await expect(client.uploadTestSuite(request))
-        .rejects.toThrow('Upload failed: Server Error');
+      await expect(client.uploadTestSuite(request)).rejects.toThrow('Upload failed: Server Error');
     });
   });
 
@@ -131,10 +128,10 @@ describe('EvalOpsAPIClient', () => {
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({
-            'Authorization': 'Bearer test-api-key',
-            'User-Agent': 'evalops-cli/1.0.0'
-          })
-        })
+            Authorization: 'Bearer test-api-key',
+            'User-Agent': 'evalops-cli/1.0.0',
+          }),
+        }),
       );
     });
 
@@ -161,7 +158,7 @@ describe('EvalOpsAPIClient', () => {
       const mockTestSuite = {
         id: 'suite-123',
         name: 'Test Suite',
-        status: 'completed'
+        status: 'completed',
       };
 
       mockFetch.mockResolvedValue({
@@ -177,9 +174,9 @@ describe('EvalOpsAPIClient', () => {
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({
-            'Authorization': 'Bearer test-api-key'
-          })
-        })
+            Authorization: 'Bearer test-api-key',
+          }),
+        }),
       );
     });
 
@@ -189,8 +186,7 @@ describe('EvalOpsAPIClient', () => {
         status: 404,
       } as Response);
 
-      await expect(client.getTestSuite('nonexistent'))
-        .rejects.toThrow('Failed to fetch test suite: HTTP 404');
+      await expect(client.getTestSuite('nonexistent')).rejects.toThrow('Failed to fetch test suite: HTTP 404');
     });
   });
 

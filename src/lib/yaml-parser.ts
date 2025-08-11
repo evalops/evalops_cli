@@ -1,15 +1,15 @@
-import * as yaml from 'js-yaml';
 import * as fs from 'fs';
+import * as yaml from 'js-yaml';
 import * as path from 'path';
-import { EvaluationConfig } from '../types';
+import type { EvaluationConfig } from '../types';
 
 export class YamlParser {
   static parseFile(filePath: string): EvaluationConfig {
     try {
       const content = fs.readFileSync(filePath, 'utf8');
-      return this.parseString(content);
+      return YamlParser.parseString(content);
     } catch (error) {
-      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      if (error instanceof Error && (error as NodeJS.ErrnoException).code === 'ENOENT') {
         throw new Error(`Configuration file not found: ${filePath}`);
       }
       throw new Error(`Failed to read configuration file: ${error instanceof Error ? error.message : error}`);
@@ -19,7 +19,7 @@ export class YamlParser {
   static parseString(content: string): EvaluationConfig {
     try {
       const parsed = yaml.load(content) as EvaluationConfig;
-      return this.validateConfig(parsed);
+      return YamlParser.validateConfig(parsed);
     } catch (error) {
       throw new Error(`Failed to parse YAML: ${error instanceof Error ? error.message : error}`);
     }
@@ -31,7 +31,7 @@ export class YamlParser {
         indent: 2,
         lineWidth: 120,
         noRefs: true,
-        sortKeys: false
+        sortKeys: false,
       });
     } catch (error) {
       throw new Error(`Failed to stringify configuration: ${error instanceof Error ? error.message : error}`);
@@ -40,13 +40,13 @@ export class YamlParser {
 
   static writeFile(filePath: string, config: EvaluationConfig): void {
     try {
-      const content = this.stringify(config);
+      const content = YamlParser.stringify(config);
       const dir = path.dirname(filePath);
-      
+
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
-      
+
       fs.writeFileSync(filePath, content, 'utf8');
     } catch (error) {
       throw new Error(`Failed to write configuration file: ${error instanceof Error ? error.message : error}`);
@@ -90,23 +90,23 @@ export class YamlParser {
 
   static resolveFileReferences(config: EvaluationConfig, basePath: string = '.'): EvaluationConfig {
     const resolved = JSON.parse(JSON.stringify(config));
-    
+
     const resolveValue = (value: any): any => {
       if (typeof value === 'string' && value.startsWith('@')) {
         const filePath = value.slice(1);
         const fullPath = path.resolve(basePath, filePath);
-        
+
         try {
           return fs.readFileSync(fullPath, 'utf8').trim();
         } catch (error) {
           throw new Error(`Failed to read referenced file: ${filePath}`);
         }
       }
-      
+
       if (Array.isArray(value)) {
         return value.map(resolveValue);
       }
-      
+
       if (value && typeof value === 'object') {
         const result: any = {};
         for (const [key, val] of Object.entries(value)) {
@@ -114,7 +114,7 @@ export class YamlParser {
         }
         return result;
       }
-      
+
       return value;
     };
 

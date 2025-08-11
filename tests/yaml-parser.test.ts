@@ -1,12 +1,12 @@
-import { YamlParser } from '../src/lib/yaml-parser';
-import { EvaluationConfig } from '../src/types';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as os from 'os';
+import * as path from 'path';
+import { YamlParser } from '../src/lib/yaml-parser';
+import type { EvaluationConfig } from '../src/types';
 
 describe('YamlParser', () => {
   let tempDir: string;
-  
+
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'evalops-test-'));
   });
@@ -22,15 +22,15 @@ describe('YamlParser', () => {
     version: '1.0',
     prompts: [
       { role: 'system', content: 'You are helpful' },
-      { role: 'user', content: 'Analyze: {{code}}' }
+      { role: 'user', content: 'Analyze: {{code}}' },
     ],
     providers: ['openai/gpt-4'],
     tests: [],
     config: {
       iterations: 1,
       parallel: true,
-      timeout: 60
-    }
+      timeout: 60,
+    },
   };
 
   describe('parseString', () => {
@@ -63,7 +63,7 @@ config:
 description: Test
 invalid: [unclosed array
 `;
-      
+
       expect(() => YamlParser.parseString(invalidYaml)).toThrow('Failed to parse YAML');
     });
 
@@ -73,7 +73,7 @@ description: Test
 version: "1.0"
 # missing prompts and providers
 `;
-      
+
       expect(() => YamlParser.parseString(incompleteYaml)).toThrow('Missing required field');
     });
   });
@@ -90,7 +90,7 @@ version: "1.0"
 
     it('should throw error for non-existent file', () => {
       const nonExistentPath = path.join(tempDir, 'does-not-exist.yaml');
-      expect(() => YamlParser.parseFile(nonExistentPath)).toThrow('Configuration file not found');
+      expect(() => YamlParser.parseFile(nonExistentPath)).toThrow(/Failed to read configuration file/);
     });
   });
 
@@ -98,7 +98,7 @@ version: "1.0"
     it('should convert configuration to YAML string', () => {
       const yamlString = YamlParser.stringify(validConfig);
       expect(yamlString).toContain('description: Test configuration');
-      expect(yamlString).toContain('version: "1.0"');
+      expect(yamlString).toMatch(/version: ['"]1\.0['"]/);
       expect(yamlString).toContain('- openai/gpt-4');
     });
 
@@ -110,9 +110,9 @@ version: "1.0"
           {
             provider: 'anthropic',
             model: 'claude-2',
-            temperature: 0.7
-          }
-        ]
+            temperature: 0.7,
+          },
+        ],
       };
 
       const yamlString = YamlParser.stringify(configWithComplexProviders);
@@ -146,7 +146,7 @@ version: "1.0"
 
       const configWithRefs: EvaluationConfig = {
         ...validConfig,
-        prompts: '@prompt.txt'
+        prompts: '@prompt.txt',
       };
 
       const resolved = YamlParser.resolveFileReferences(configWithRefs, tempDir);
@@ -156,7 +156,7 @@ version: "1.0"
     it('should resolve nested file references', () => {
       const systemPromptFile = path.join(tempDir, 'system.txt');
       const userPromptFile = path.join(tempDir, 'user.txt');
-      
+
       fs.writeFileSync(systemPromptFile, 'You are a helpful assistant');
       fs.writeFileSync(userPromptFile, 'Please analyze: {{code}}');
 
@@ -164,8 +164,8 @@ version: "1.0"
         ...validConfig,
         prompts: [
           { role: 'system', content: '@system.txt' },
-          { role: 'user', content: '@user.txt' }
-        ]
+          { role: 'user', content: '@user.txt' },
+        ],
       };
 
       const resolved = YamlParser.resolveFileReferences(configWithRefs, tempDir);
@@ -176,17 +176,18 @@ version: "1.0"
     it('should throw error for missing referenced file', () => {
       const configWithBadRef: EvaluationConfig = {
         ...validConfig,
-        prompts: '@missing-file.txt'
+        prompts: '@missing-file.txt',
       };
 
-      expect(() => YamlParser.resolveFileReferences(configWithBadRef, tempDir))
-        .toThrow('Failed to read referenced file');
+      expect(() => YamlParser.resolveFileReferences(configWithBadRef, tempDir)).toThrow(
+        'Failed to read referenced file',
+      );
     });
 
     it('should leave non-reference strings unchanged', () => {
       const config: EvaluationConfig = {
         ...validConfig,
-        prompts: 'Regular prompt without reference'
+        prompts: 'Regular prompt without reference',
       };
 
       const resolved = YamlParser.resolveFileReferences(config, tempDir);

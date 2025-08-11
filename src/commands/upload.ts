@@ -1,10 +1,10 @@
 import * as fs from 'fs';
-import * as path from 'path';
 import ora from 'ora';
-import { EvaluationConfig } from '../types';
-import { YamlParser } from '../lib/yaml-parser';
-import { SimpleTestDiscovery } from '../lib/simple-test-discovery';
+import * as path from 'path';
 import { EvalOpsAPIClient } from '../lib/api-client';
+import { SimpleTestDiscovery } from '../lib/simple-test-discovery';
+import { YamlParser } from '../lib/yaml-parser';
+import type { EvaluationConfig } from '../types';
 import { ConfigManager } from '../utils/config';
 import { Logger } from '../utils/logger';
 
@@ -19,7 +19,7 @@ interface UploadOptions {
 export class UploadCommand {
   static async execute(options: UploadOptions): Promise<void> {
     const configPath = path.resolve(options.file || './evalops.yaml');
-    
+
     if (!fs.existsSync(configPath)) {
       Logger.error(`Configuration file not found: ${configPath}`);
       Logger.info('Run "evalops init" to create a configuration file');
@@ -29,7 +29,7 @@ export class UploadCommand {
     // Get API credentials
     const apiKey = options.apiKey || ConfigManager.getApiKey();
     const apiUrl = options.apiUrl || ConfigManager.getApiUrl();
-    
+
     if (!apiKey) {
       Logger.error('API key is required');
       Logger.info('Set EVALOPS_API_KEY environment variable or use --api-key option');
@@ -38,7 +38,7 @@ export class UploadCommand {
     }
 
     Logger.info(`Loading configuration from: ${configPath}`);
-    
+
     // Load and parse configuration
     let config: EvaluationConfig;
     try {
@@ -64,12 +64,12 @@ export class UploadCommand {
     try {
       const discovery = new SimpleTestDiscovery();
       const testCases = await discovery.discoverAllTests();
-      
+
       if (testCases.length > 0) {
         // Add discovered test cases to config
         config.tests = [...(config.tests || []), ...testCases];
         spinner.succeed(`Found ${testCases.length} test case(s)`);
-        
+
         Logger.info('Discovered test cases:');
         testCases.forEach((testCase, index) => {
           Logger.info(`  ${index + 1}. ${testCase.description}`);
@@ -87,7 +87,7 @@ export class UploadCommand {
 
     // Generate final configuration content
     const configContent = YamlParser.stringify(config);
-    
+
     if (options.dryRun) {
       Logger.info('');
       Logger.info('=== DRY RUN - Configuration that would be uploaded ===');
@@ -100,7 +100,7 @@ export class UploadCommand {
 
     // Upload to EvalOps
     const client = new EvalOpsAPIClient(apiKey, apiUrl);
-    
+
     // Validate API key first
     const validateSpinner = ora('Validating API credentials...').start();
     try {
@@ -123,27 +123,26 @@ export class UploadCommand {
       const uploadRequest = {
         format: 'yaml' as const,
         content: configContent,
-        name: options.name || config.description
+        name: options.name || config.description,
       };
 
       const response = await client.uploadTestSuite(uploadRequest);
       uploadSpinner.succeed('Test suite uploaded successfully');
-      
+
       Logger.success('✓ Upload completed successfully!');
       Logger.info('');
       Logger.info('Test Suite Details:');
       Logger.info(`  ID: ${response.id}`);
       Logger.info(`  Name: ${response.name}`);
       Logger.info(`  Status: ${response.status}`);
-      
+
       const webUrl = client.constructWebUrl(response.id);
       Logger.info(`  URL: ${webUrl}`);
       Logger.info('');
       Logger.success('You can view your test suite in the EvalOps dashboard!');
-      
     } catch (error) {
       uploadSpinner.fail('Upload failed');
-      
+
       if (error instanceof Error) {
         if (error.message.includes('401') || error.message.includes('Unauthorized')) {
           Logger.error('Authentication failed. Please check your API key.');
@@ -155,7 +154,7 @@ export class UploadCommand {
           Logger.error(`Upload failed: ${error.message}`);
         }
       }
-      
+
       throw error;
     }
   }

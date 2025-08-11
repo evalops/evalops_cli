@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { EvaluationConfig } from '../types';
-import { YamlParser } from '../lib/yaml-parser';
 import { SimpleTestDiscovery } from '../lib/simple-test-discovery';
+import { YamlParser } from '../lib/yaml-parser';
+import type { EvaluationConfig } from '../types';
 import { Logger } from '../utils/logger';
 
 interface ValidateOptions {
@@ -13,7 +13,7 @@ interface ValidateOptions {
 export class ValidateCommand {
   static async execute(options: ValidateOptions): Promise<void> {
     const configPath = path.resolve(options.file || './evalops.yaml');
-    
+
     if (!fs.existsSync(configPath)) {
       Logger.error(`Configuration file not found: ${configPath}`);
       Logger.info('Run "evalops init" to create a configuration file');
@@ -21,7 +21,7 @@ export class ValidateCommand {
     }
 
     Logger.info(`Validating configuration file: ${configPath}`);
-    
+
     let config: EvaluationConfig;
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -37,7 +37,7 @@ export class ValidateCommand {
 
     // 2. Validate configuration content
     try {
-      this.validateConfigContent(config, errors, warnings);
+      ValidateCommand.validateConfigContent(config, errors, warnings);
     } catch (error) {
       Logger.error(`✗ Configuration validation failed: ${error instanceof Error ? error.message : error}`);
       throw error;
@@ -48,9 +48,9 @@ export class ValidateCommand {
       const basePath = path.dirname(configPath);
       const resolvedConfig = YamlParser.resolveFileReferences(config, basePath);
       Logger.success('✓ File references resolved successfully');
-      
+
       if (options.verbose) {
-        this.logResolvedReferences(config, resolvedConfig);
+        ValidateCommand.logResolvedReferences(config, resolvedConfig);
       }
     } catch (error) {
       errors.push(`File reference error: ${error instanceof Error ? error.message : error}`);
@@ -62,14 +62,14 @@ export class ValidateCommand {
     try {
       const discovery = new SimpleTestDiscovery();
       const testCases = await discovery.discoverAllTests();
-      
+
       if (testCases.length === 0) {
         warnings.push('No test cases found in codebase');
         Logger.warn('⚠ No test cases found in codebase');
         Logger.info('  Add test cases using @evalops_test decorators or evalops_test() function calls');
       } else {
         Logger.success(`✓ Found ${testCases.length} test case(s)`);
-        
+
         if (options.verbose) {
           Logger.info('');
           Logger.info('Discovered test cases:');
@@ -89,22 +89,22 @@ export class ValidateCommand {
     }
 
     // 5. Validate providers
-    this.validateProviders(config.providers, warnings);
+    ValidateCommand.validateProviders(config.providers, warnings);
 
     // 6. Validate assertions
-    this.validateAssertions(config, warnings);
+    ValidateCommand.validateAssertions(config, warnings);
 
     // Report results
     Logger.newline();
     if (errors.length > 0) {
       Logger.error('Validation failed with errors:');
-      errors.forEach(error => Logger.error(`  - ${error}`));
+      errors.forEach((error) => Logger.error(`  - ${error}`));
       throw new Error('Validation failed');
     }
 
     if (warnings.length > 0) {
       Logger.warn(`Validation completed with ${warnings.length} warning(s):`);
-      warnings.forEach(warning => Logger.warn(`  - ${warning}`));
+      warnings.forEach((warning) => Logger.warn(`  - ${warning}`));
     } else {
       Logger.success('✓ Validation completed successfully');
     }
@@ -133,7 +133,7 @@ export class ValidateCommand {
     if (!config.prompts) {
       errors.push('Prompts are required');
     } else {
-      this.validatePrompts(config.prompts, errors, warnings);
+      ValidateCommand.validatePrompts(config.prompts, errors, warnings);
     }
 
     // Validate providers
@@ -207,7 +207,7 @@ export class ValidateCommand {
   private static validateProviders(providers: any[], warnings: string[]): void {
     for (let i = 0; i < providers.length; i++) {
       const provider = providers[i];
-      
+
       if (typeof provider === 'string') {
         if (!provider.includes('/')) {
           warnings.push(`Provider at index ${i} should include model (format: provider/model): ${provider}`);
@@ -232,10 +232,21 @@ export class ValidateCommand {
         const assert = asserts[i];
         if (!assert.type) {
           warnings.push(`${context} assertion at index ${i} missing type`);
-        } else if (!['contains', 'not-contains', 'equals', 'not-equals', 'llm-judge', 'regex', 'json-path', 'similarity'].includes(assert.type)) {
+        } else if (
+          ![
+            'contains',
+            'not-contains',
+            'equals',
+            'not-equals',
+            'llm-judge',
+            'regex',
+            'json-path',
+            'similarity',
+          ].includes(assert.type)
+        ) {
           warnings.push(`${context} assertion at index ${i} has unknown type: ${assert.type}`);
         }
-        
+
         if (assert.value === undefined) {
           warnings.push(`${context} assertion at index ${i} missing value`);
         }
@@ -281,7 +292,7 @@ export class ValidateCommand {
     if (references.length > 0) {
       Logger.info('');
       Logger.info('Resolved file references:');
-      references.forEach(ref => Logger.info(`  ${ref}`));
+      references.forEach((ref) => Logger.info(`  ${ref}`));
     }
   }
 }

@@ -1,19 +1,25 @@
 import * as fs from 'fs';
-import * as path from 'path';
 import * as os from 'os';
-import { CLIConfig } from '../types';
-
-const CONFIG_DIR = path.join(os.homedir(), '.evalops');
-const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
+import * as path from 'path';
+import type { CLIConfig } from '../types';
 
 export class ConfigManager {
+  private static getConfigDir(): string {
+    return path.join(os.homedir(), '.evalops');
+  }
+
+  private static getConfigFile(): string {
+    return path.join(ConfigManager.getConfigDir(), 'config.json');
+  }
+
   static load(): CLIConfig {
     try {
-      if (!fs.existsSync(CONFIG_FILE)) {
+      const configFile = ConfigManager.getConfigFile();
+      if (!fs.existsSync(configFile)) {
         return {};
       }
 
-      const content = fs.readFileSync(CONFIG_FILE, 'utf8');
+      const content = fs.readFileSync(configFile, 'utf8');
       return JSON.parse(content) as CLIConfig;
     } catch (error) {
       console.warn(`Warning: Failed to load config file: ${error instanceof Error ? error.message : error}`);
@@ -23,11 +29,14 @@ export class ConfigManager {
 
   static save(config: CLIConfig): void {
     try {
-      if (!fs.existsSync(CONFIG_DIR)) {
-        fs.mkdirSync(CONFIG_DIR, { recursive: true });
+      const configDir = ConfigManager.getConfigDir();
+      const configFile = ConfigManager.getConfigFile();
+
+      if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
       }
 
-      fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf8');
+      fs.writeFileSync(configFile, JSON.stringify(config, null, 2), 'utf8');
     } catch (error) {
       throw new Error(`Failed to save config: ${error instanceof Error ? error.message : error}`);
     }
@@ -38,7 +47,7 @@ export class ConfigManager {
     const envKey = process.env.EVALOPS_API_KEY;
     if (envKey) return envKey;
 
-    const config = this.load();
+    const config = ConfigManager.load();
     return config.apiKey;
   }
 
@@ -47,19 +56,19 @@ export class ConfigManager {
     const envUrl = process.env.EVALOPS_API_URL;
     if (envUrl) return envUrl;
 
-    const config = this.load();
+    const config = ConfigManager.load();
     return config.apiUrl || 'https://api.evalops.dev';
   }
 
   static setApiKey(apiKey: string): void {
-    const config = this.load();
+    const config = ConfigManager.load();
     config.apiKey = apiKey;
-    this.save(config);
+    ConfigManager.save(config);
   }
 
   static setApiUrl(apiUrl: string): void {
-    const config = this.load();
+    const config = ConfigManager.load();
     config.apiUrl = apiUrl;
-    this.save(config);
+    ConfigManager.save(config);
   }
 }

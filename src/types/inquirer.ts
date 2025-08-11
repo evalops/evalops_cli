@@ -3,7 +3,7 @@ export interface InquirerPrompt {
   name: string;
   message: string;
   default?: string | boolean | string[];
-  choices?: Array<{name: string; value: string; checked?: boolean}>;
+  choices?: Array<{ name: string; value: string; checked?: boolean }>;
   validate?: (input: string) => boolean | string;
   when?: (answers: Record<string, unknown>) => boolean;
 }
