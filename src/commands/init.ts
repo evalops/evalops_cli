@@ -1,7 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { inquirer } from 'inquirer';
+import inquirer from 'inquirer';
 import { EvaluationConfig } from '../types';
+import { InquirerPrompt, InquirerAnswers } from '../types/inquirer';
 import { YamlParser } from '../lib/yaml-parser';
 import { Logger } from '../utils/logger';
 
@@ -49,7 +50,7 @@ export class InitCommand {
     Logger.info('Setting up your EvalOps configuration...');
     Logger.newline();
 
-    const answers = await inquirer.prompt([
+    const prompts: InquirerPrompt[] = [
       {
         type: 'input',
         name: 'description',
@@ -61,7 +62,10 @@ export class InitCommand {
         type: 'list',
         name: 'version',
         message: 'Configuration version:',
-        choices: ['1.0', '2.0'],
+        choices: [
+          { name: '1.0', value: '1.0' },
+          { name: '2.0', value: '2.0' }
+        ],
         default: '1.0'
       },
       {
@@ -86,14 +90,13 @@ export class InitCommand {
           { name: 'Anthropic Claude-2', value: 'anthropic/claude-2' },
           { name: 'Anthropic Claude-3-haiku', value: 'anthropic/claude-3-haiku' },
           { name: 'Custom provider', value: 'custom' }
-        ],
-        validate: (input: string[]) => input.length > 0 || 'At least one provider is required'
+        ]
       },
       {
         type: 'input',
         name: 'customProvider',
         message: 'Enter custom provider (format: provider/model):',
-        when: (answers: any) => answers.providers.includes('custom'),
+        when: (answers: Record<string, unknown>) => (answers.providers as string[]).includes('custom'),
         validate: (input: string) => /^[\w-]+\/[\w-]+$/.test(input) || 'Invalid format. Use: provider/model'
       },
       {
@@ -106,7 +109,7 @@ export class InitCommand {
         type: 'checkbox',
         name: 'defaultAsserts',
         message: 'Select default assertion types:',
-        when: (answers: any) => answers.addDefaultAsserts,
+        when: (answers: Record<string, unknown>) => answers.addDefaultAsserts as boolean,
         choices: [
           { name: 'Contains text', value: 'contains', checked: true },
           { name: 'LLM Judge', value: 'llm-judge', checked: true },
@@ -114,7 +117,9 @@ export class InitCommand {
           { name: 'JSON path', value: 'json-path' }
         ]
       }
-    ]);
+    ];
+
+    const answers = await inquirer.prompt(prompts as any) as InquirerAnswers;
 
     // Handle custom provider
     let providers = answers.providers.filter((p: string) => p !== 'custom');
@@ -129,28 +134,28 @@ export class InitCommand {
         switch (assertType) {
           case 'contains':
             defaultAsserts.push({
-              type: 'contains',
+              type: 'contains' as const,
               value: 'summary',
               weight: 0.5
             });
             break;
           case 'llm-judge':
             defaultAsserts.push({
-              type: 'llm-judge',
+              type: 'llm-judge' as const,
               value: 'Is the analysis accurate and helpful?',
               weight: 0.8
             });
             break;
           case 'regex':
             defaultAsserts.push({
-              type: 'regex',
+              type: 'regex' as const,
               value: '\\b(function|class|method)\\b',
               weight: 0.3
             });
             break;
           case 'json-path':
             defaultAsserts.push({
-              type: 'json-path',
+              type: 'json-path' as const,
               value: '$.summary',
               weight: 0.4
             });
@@ -209,12 +214,12 @@ export class InitCommand {
       defaultTest: {
         assert: [
           {
-            type: 'contains',
+            type: 'contains' as const,
             value: 'analysis',
             weight: 0.5
           },
           {
-            type: 'llm-judge',
+            type: 'llm-judge' as const,
             value: 'Is the analysis accurate?',
             weight: 0.8
           }
@@ -255,22 +260,22 @@ export class InitCommand {
       defaultTest: {
         assert: [
           {
-            type: 'contains',
+            type: 'contains' as const,
             value: 'quality',
             weight: 0.3
           },
           {
-            type: 'contains',
+            type: 'contains' as const,
             value: 'improvement',
             weight: 0.3
           },
           {
-            type: 'llm-judge',
+            type: 'llm-judge' as const,
             value: 'Does the analysis cover code quality, improvements, security, and performance?',
             weight: 0.9
           },
           {
-            type: 'regex',
+            type: 'regex' as const,
             value: '\\b(security|performance|optimization)\\b',
             weight: 0.4
           }

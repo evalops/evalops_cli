@@ -1,0 +1,24 @@
+description: Basic EvalOps evaluation
+version: '1.0'
+prompts:
+  - role: system
+    content: You are a helpful assistant.
+  - role: user
+    content: 'Analyze the following code: {{code}}'
+providers:
+  - openai/gpt-4
+defaultTest:
+  assert:
+    - type: contains
+      value: analysis
+      weight: 0.5
+    - type: llm-judge
+      value: Is the analysis accurate?
+      weight: 0.8
+tests: []
+config:
+  iterations: 1
+  parallel: true
+  timeout: 60
+outputPath: results.json
+outputFormat: json

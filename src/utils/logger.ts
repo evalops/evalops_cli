@@ -1,10 +1,10 @@
 import chalk from 'chalk';
 
 export class Logger {
-  private static debug: boolean = false;
+  private static debugEnabled: boolean = false;
 
   static setDebug(debug: boolean): void {
-    this.debug = debug;
+    this.debugEnabled = debug;
   }
 
   static info(message: string): void {
@@ -24,7 +24,7 @@ export class Logger {
   }
 
   static debug(message: string): void {
-    if (this.debug) {
+    if (this.debugEnabled) {
       console.log(chalk.gray('🔍'), chalk.gray(message));
     }
   }

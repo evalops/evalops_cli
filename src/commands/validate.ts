@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { EvaluationConfig } from '../types';
 import { YamlParser } from '../lib/yaml-parser';
-import { TestDiscovery } from '../lib/test-discovery';
+import { SimpleTestDiscovery } from '../lib/simple-test-discovery';
 import { Logger } from '../utils/logger';
 
 interface ValidateOptions {
@@ -60,7 +60,7 @@ export class ValidateCommand {
     // 4. Discover and validate test cases
     Logger.info('Discovering test cases...');
     try {
-      const discovery = new TestDiscovery();
+      const discovery = new SimpleTestDiscovery();
       const testCases = await discovery.discoverAllTests();
       
       if (testCases.length === 0) {
