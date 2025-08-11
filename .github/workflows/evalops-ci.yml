@@ -36,8 +36,10 @@ jobs:
 
       - name: Calculate Cost Estimate
         id: cost
+        env:
+          DOTENV_QUIET: true
         run: |
-          COST=$(evalops cost --format json | jq -r '.totalCost')
+          COST=$(evalops cost --format json | tail -n +2 | jq -r '.totalCost')
           echo "total-cost=$COST" >> $GITHUB_OUTPUT
           echo "### 💰 Cost Estimate: \$${COST}" >> $GITHUB_STEP_SUMMARY
 

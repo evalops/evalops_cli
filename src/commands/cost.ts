@@ -88,13 +88,15 @@ export class CostCommand {
       throw new Error('Configuration file not found');
     }
 
-    Logger.info('💰 Calculating cost estimate...');
+    if (options.format !== 'json') {
+      Logger.info('💰 Calculating cost estimate...');
+    }
 
     // Load and parse configuration
     let config: EvaluationConfig;
     try {
       config = YamlParser.parseFile(configPath);
-      if (options.verbose) {
+      if (options.verbose && options.format !== 'json') {
         Logger.success('✓ Configuration loaded');
       }
     } catch (error) {
@@ -106,7 +108,7 @@ export class CostCommand {
     try {
       const basePath = path.dirname(configPath);
       config = YamlParser.resolveFileReferences(config, basePath);
-      if (options.verbose) {
+      if (options.verbose && options.format !== 'json') {
         Logger.success('✓ File references resolved');
       }
     } catch (error) {
@@ -119,7 +121,7 @@ export class CostCommand {
     if (totalTests === 0) {
       // Provide a reasonable default for cost estimation
       totalTests = 1;
-      if (options.verbose) {
+      if (options.verbose && options.format !== 'json') {
         Logger.info('ℹ No tests defined in configuration, using default count for estimation');
       }
     }
