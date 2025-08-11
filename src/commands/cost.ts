@@ -42,39 +42,175 @@ interface CostSummary {
 export class CostCommand {
   // Pricing data (updated as of January 2025)
   private static readonly PROVIDER_COSTS: ProviderCosts = {
+    // OpenAI Models - All prices per 1K tokens
     'openai/gpt-4': {
-      inputTokenCost: 0.03, // $0.03 per 1K tokens
-      outputTokenCost: 0.06, // $0.06 per 1K tokens
+      inputTokenCost: 0.03, // $30 per 1M tokens
+      outputTokenCost: 0.06, // $60 per 1M tokens
       requestCost: 0,
     },
     'openai/gpt-4-turbo': {
-      inputTokenCost: 0.01,
-      outputTokenCost: 0.03,
+      inputTokenCost: 0.01, // $10 per 1M tokens
+      outputTokenCost: 0.03, // $30 per 1M tokens
+      requestCost: 0,
+    },
+    'openai/gpt-4o': {
+      inputTokenCost: 0.0025, // $2.50 per 1M tokens
+      outputTokenCost: 0.01, // $10 per 1M tokens
+      requestCost: 0,
+    },
+    'openai/gpt-4o-mini': {
+      inputTokenCost: 0.00015, // $0.15 per 1M tokens
+      outputTokenCost: 0.0006, // $0.60 per 1M tokens
       requestCost: 0,
     },
     'openai/gpt-3.5-turbo': {
-      inputTokenCost: 0.0015,
-      outputTokenCost: 0.002,
+      inputTokenCost: 0.0005, // $0.50 per 1M tokens
+      outputTokenCost: 0.0015, // $1.50 per 1M tokens
       requestCost: 0,
     },
+    'openai/gpt-3.5-turbo-16k': {
+      inputTokenCost: 0.003, // $3 per 1M tokens
+      outputTokenCost: 0.004, // $4 per 1M tokens
+      requestCost: 0,
+    },
+    
+    // Anthropic Models - All prices per 1K tokens
     'anthropic/claude-3-opus': {
-      inputTokenCost: 0.015,
-      outputTokenCost: 0.075,
+      inputTokenCost: 0.015, // $15 per 1M tokens
+      outputTokenCost: 0.075, // $75 per 1M tokens
       requestCost: 0,
     },
     'anthropic/claude-3-sonnet': {
-      inputTokenCost: 0.003,
-      outputTokenCost: 0.015,
+      inputTokenCost: 0.003, // $3 per 1M tokens
+      outputTokenCost: 0.015, // $15 per 1M tokens
+      requestCost: 0,
+    },
+    'anthropic/claude-3.5-sonnet': {
+      inputTokenCost: 0.003, // $3 per 1M tokens
+      outputTokenCost: 0.015, // $15 per 1M tokens
+      requestCost: 0,
+    },
+    'anthropic/claude-3.7-sonnet': {
+      inputTokenCost: 0.003, // $3 per 1M tokens (includes thinking tokens)
+      outputTokenCost: 0.015, // $15 per 1M tokens
+      requestCost: 0,
+    },
+    'anthropic/claude-sonnet-4': {
+      inputTokenCost: 0.003, // $3 per 1M tokens
+      outputTokenCost: 0.015, // $15 per 1M tokens
       requestCost: 0,
     },
     'anthropic/claude-3-haiku': {
-      inputTokenCost: 0.00025,
-      outputTokenCost: 0.00125,
+      inputTokenCost: 0.00025, // $0.25 per 1M tokens
+      outputTokenCost: 0.00125, // $1.25 per 1M tokens
+      requestCost: 0,
+    },
+    'anthropic/claude-3.5-haiku': {
+      inputTokenCost: 0.0008, // $0.80 per 1M tokens
+      outputTokenCost: 0.004, // $4 per 1M tokens
+      requestCost: 0,
+    },
+    'anthropic/claude-2.1': {
+      inputTokenCost: 0.008, // $8 per 1M tokens
+      outputTokenCost: 0.024, // $24 per 1M tokens
       requestCost: 0,
     },
     'anthropic/claude-2': {
-      inputTokenCost: 0.008,
-      outputTokenCost: 0.024,
+      inputTokenCost: 0.008, // $8 per 1M tokens
+      outputTokenCost: 0.024, // $24 per 1M tokens
+      requestCost: 0,
+    },
+    
+    // Google Models - All prices per 1K tokens
+    'google/gemini-pro': {
+      inputTokenCost: 0.0005, // $0.50 per 1M tokens
+      outputTokenCost: 0.0015, // $1.50 per 1M tokens
+      requestCost: 0,
+    },
+    'google/gemini-pro-vision': {
+      inputTokenCost: 0.00025, // $0.25 per 1M tokens
+      outputTokenCost: 0.00125, // $1.25 per 1M tokens
+      requestCost: 0,
+    },
+    'google/gemini-1.5-pro': {
+      inputTokenCost: 0.00125, // $1.25 per 1M tokens (up to 128K)
+      outputTokenCost: 0.005, // $5.00 per 1M tokens (up to 128K)
+      requestCost: 0,
+    },
+    'google/gemini-1.5-flash': {
+      inputTokenCost: 0.000075, // $0.075 per 1M tokens (up to 128K)
+      outputTokenCost: 0.0003, // $0.30 per 1M tokens (up to 128K)
+      requestCost: 0,
+    },
+    'google/gemini-2.0-flash': {
+      inputTokenCost: 0.0001, // $0.10 per 1M tokens
+      outputTokenCost: 0.0004, // $0.40 per 1M tokens
+      requestCost: 0,
+    },
+    'google/gemini-2.5-pro': {
+      inputTokenCost: 0.00125, // $1.25 per 1M tokens (up to 200K)
+      outputTokenCost: 0.01, // $10 per 1M tokens (up to 200K)
+      requestCost: 0,
+    },
+    
+    // Cohere Models
+    'cohere/command': {
+      inputTokenCost: 0.0015, // $1.50 per 1M tokens
+      outputTokenCost: 0.002, // $2.00 per 1M tokens
+      requestCost: 0,
+    },
+    'cohere/command-light': {
+      inputTokenCost: 0.0003, // $0.30 per 1M tokens
+      outputTokenCost: 0.0006, // $0.60 per 1M tokens
+      requestCost: 0,
+    },
+    'cohere/command-r': {
+      inputTokenCost: 0.0005, // $0.50 per 1M tokens
+      outputTokenCost: 0.0015, // $1.50 per 1M tokens
+      requestCost: 0,
+    },
+    'cohere/command-r-plus': {
+      inputTokenCost: 0.003, // $3.00 per 1M tokens
+      outputTokenCost: 0.015, // $15.00 per 1M tokens
+      requestCost: 0,
+    },
+    
+    // Meta Llama Models (via various providers)
+    'meta/llama-3-8b': {
+      inputTokenCost: 0.0002, // $0.20 per 1M tokens
+      outputTokenCost: 0.0002, // $0.20 per 1M tokens
+      requestCost: 0,
+    },
+    'meta/llama-3-70b': {
+      inputTokenCost: 0.0008, // $0.80 per 1M tokens
+      outputTokenCost: 0.0008, // $0.80 per 1M tokens
+      requestCost: 0,
+    },
+    'meta/llama-3-405b': {
+      inputTokenCost: 0.002, // $2.00 per 1M tokens
+      outputTokenCost: 0.002, // $2.00 per 1M tokens
+      requestCost: 0,
+    },
+    
+    // Mistral Models
+    'mistral/mistral-tiny': {
+      inputTokenCost: 0.00025, // $0.25 per 1M tokens
+      outputTokenCost: 0.00025, // $0.25 per 1M tokens
+      requestCost: 0,
+    },
+    'mistral/mistral-small': {
+      inputTokenCost: 0.001, // $1.00 per 1M tokens
+      outputTokenCost: 0.003, // $3.00 per 1M tokens
+      requestCost: 0,
+    },
+    'mistral/mistral-medium': {
+      inputTokenCost: 0.0027, // $2.70 per 1M tokens
+      outputTokenCost: 0.0081, // $8.10 per 1M tokens
+      requestCost: 0,
+    },
+    'mistral/mistral-large': {
+      inputTokenCost: 0.008, // $8.00 per 1M tokens
+      outputTokenCost: 0.024, // $24.00 per 1M tokens
       requestCost: 0,
     },
   };

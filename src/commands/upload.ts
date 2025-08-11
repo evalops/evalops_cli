@@ -18,6 +18,8 @@ interface UploadOptions {
   dryRun?: boolean;
   checkBudget?: boolean;
   budgetFile?: string;
+  run?: boolean;
+  wait?: boolean;
 }
 
 export class UploadCommand {
@@ -152,31 +154,35 @@ export class UploadCommand {
       throw error;
     }
 
-    // Upload the test suite
-    const uploadSpinner = ora('Uploading test suite to EvalOps...').start();
+    // Transform configuration to platform format
+    const transformSpinner = ora('Preparing test suite...').start();
+    let testSuiteRequest;
     try {
-      const uploadRequest = {
-        format: 'yaml' as const,
-        content: configContent,
-        name: options.name || config.description,
-      };
+      testSuiteRequest = client.transformConfigToTestSuite(config);
+      if (options.name) {
+        testSuiteRequest.name = options.name;
+      }
+      transformSpinner.succeed('Test suite prepared');
+    } catch (error) {
+      transformSpinner.fail('Failed to prepare test suite');
+      throw error;
+    }
 
-      const response = await client.uploadTestSuite(uploadRequest);
-      uploadSpinner.succeed('Test suite uploaded successfully');
+    // Create test suite on platform
+    const uploadSpinner = ora('Creating test suite on EvalOps...').start();
+    let testSuiteResponse;
+    try {
+      testSuiteResponse = await client.createTestSuite(testSuiteRequest);
+      uploadSpinner.succeed('Test suite created successfully');
 
-      Logger.success('✓ Upload completed successfully!');
+      Logger.success('✓ Test suite created!');
       Logger.info('');
       Logger.info('Test Suite Details:');
-      Logger.info(`  ID: ${response.id}`);
-      Logger.info(`  Name: ${response.name}`);
-      Logger.info(`  Status: ${response.status}`);
-
-      const webUrl = client.constructWebUrl(response.id);
-      Logger.info(`  URL: ${webUrl}`);
-      Logger.info('');
-      Logger.success('You can view your test suite in the EvalOps dashboard!');
+      Logger.info(`  ID: ${testSuiteResponse.id}`);
+      Logger.info(`  Name: ${testSuiteResponse.name}`);
+      Logger.info(`  Status: ${testSuiteResponse.status}`);
     } catch (error) {
-      uploadSpinner.fail('Upload failed');
+      uploadSpinner.fail('Failed to create test suite');
 
       if (error instanceof Error) {
         if (error.message.includes('401') || error.message.includes('Unauthorized')) {
@@ -192,5 +198,64 @@ export class UploadCommand {
 
       throw error;
     }
+
+    // Optionally run the test suite immediately
+    if (options.run) {
+      const runSpinner = ora('Starting evaluation...').start();
+      try {
+        const testRun = await client.createTestRun(testSuiteResponse.id);
+        runSpinner.succeed('Evaluation started');
+        
+        Logger.info('');
+        Logger.info('Evaluation Started:');
+        Logger.info(`  Run ID: ${testRun.id}`);
+        Logger.info(`  Status: ${testRun.status}`);
+        
+        // Poll for results if requested
+        if (options.wait) {
+          const pollSpinner = ora('Waiting for evaluation to complete...').start();
+          const completedRun = await client.pollTestRun(testRun.id, 300000); // 5 minutes max
+          pollSpinner.succeed('Evaluation completed');
+          
+          // Display results
+          if (completedRun.metrics) {
+            Logger.info('');
+            Logger.info('📊 Evaluation Results:');
+            Logger.info(`  Quality Score: ${completedRun.metrics.qualityScore.toFixed(2)}`);
+            Logger.info(`  Total Cost: $${completedRun.metrics.totalCost.toFixed(4)}`);
+            Logger.info(`  Tokens Used: ${completedRun.metrics.tokensUsed}`);
+            Logger.info(`  Avg Latency: ${completedRun.metrics.avgLatencyMs}ms`);
+            
+            // Check budget if enabled
+            if (options.checkBudget && budgetValidator) {
+              const actualMetrics: EvaluationMetrics = {
+                quality_score: completedRun.metrics.qualityScore,
+                cost_usd: completedRun.metrics.totalCost,
+                tokens_used: completedRun.metrics.tokensUsed,
+                avg_latency_ms: completedRun.metrics.avgLatencyMs,
+                total_execution_time_ms: completedRun.metrics.totalExecutionTimeMs
+              };
+              
+              const budgetResult = budgetValidator.validateMetrics(actualMetrics);
+              Logger.info('');
+              Logger.info('🎯 Budget Validation:');
+              budgetValidator.displayResults(budgetResult);
+              
+              if (!budgetResult.passed) {
+                throw new Error('Budget constraints violated');
+              }
+            }
+          }
+        }
+      } catch (error) {
+        runSpinner.fail('Evaluation failed');
+        throw error;
+      }
+    }
+
+    const webUrl = client.constructWebUrl(testSuiteResponse.id);
+    Logger.info('');
+    Logger.info(`View in dashboard: ${webUrl}`);
+    Logger.success('✨ Done!');
   }
 }

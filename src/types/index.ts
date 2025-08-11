@@ -40,6 +40,8 @@ export interface TestCase {
   prompt?: Prompt;
   skip?: boolean;
   tags?: string[];
+  expected?: string;
+  metadata?: TestCaseMetadata;
 }
 
 export interface AssertConfig {
@@ -54,6 +56,7 @@ export interface ExecutionConfig {
   parallel?: boolean;
   timeout?: number;
   maxRetries?: number;
+  costLimit?: number;
 }
 
 export interface SharingConfig {

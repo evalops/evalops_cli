@@ -19,8 +19,28 @@
       "Bash(node dist/cli.js --help)",
       "Bash(npm run format:*)",
       "Bash(npm run lint)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(gh repo create:*)",
+      "Bash(gh repo list:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh repo delete:*)",
+      "Bash(gh search repos:*)",
+      "Bash(gh repo clone:*)",
+      "mcp__filesystem__create_directory",
+      "Bash(gh repo view:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(node:*)",
+      "Bash(git clone:*)",
+      "Bash(grep:*)",
+      "Bash(npm link:*)",
+      "Bash(evalops upload:*)",
+      "Bash(evalops:*)",
+      "Bash(EVALOPS_API_KEY=test-api-key evalops upload --dry-run -f /Users/jonathanhaas/evalops_cli/test-example/evalops.yaml)"
     ],
-    "deny": []
+    "deny": [],
+    "additionalDirectories": [
+      "/Users/jonathanhaas/platform"
+    ]
   }
 }

@@ -16,6 +16,7 @@ import dotenv from 'dotenv';
 import { BudgetCommand } from './commands/budget';
 import { CostCommand } from './commands/cost';
 import { InitCommand } from './commands/init';
+import { RunCommand } from './commands/run';
 import { UploadCommand } from './commands/upload';
 import { ValidateCommand } from './commands/validate';
 
@@ -63,6 +64,8 @@ program
   .option('--dry-run', 'Preview what would be uploaded without actually uploading')
   .option('--check-budget', 'Enforce budget constraints before and after evaluation')
   .option('--budget-file <file>', 'Path to budget.yaml file', './budget.yaml')
+  .option('--run', 'Run the evaluation immediately after upload')
+  .option('--wait', 'Wait for evaluation to complete and display results')
   .action(async (options) => {
     try {
       await UploadCommand.execute(options);
@@ -98,6 +101,24 @@ program
   .action(async (options) => {
     try {
       await BudgetCommand.execute(options);
+    } catch (error) {
+      console.error(chalk.red('Error:'), error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('run <test-suite-id>')
+  .description('Run an existing test suite on the EvalOps platform')
+  .option('--api-key <key>', 'EvalOps API key')
+  .option('--api-url <url>', 'EvalOps API URL', 'https://api.evalops.dev')
+  .option('--wait', 'Wait for evaluation to complete and display results')
+  .option('--check-budget', 'Enforce budget constraints after evaluation')
+  .option('--budget-file <file>', 'Path to budget.yaml file', './budget.yaml')
+  .option('--environment <env>', 'Environment for budget validation')
+  .action(async (testSuiteId, options) => {
+    try {
+      await RunCommand.execute({ ...options, testSuiteId });
     } catch (error) {
       console.error(chalk.red('Error:'), error instanceof Error ? error.message : error);
       process.exit(1);

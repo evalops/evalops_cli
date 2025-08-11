@@ -1,0 +1,40 @@
+version: '1.0'
+description: 'Test Suite for API Integration'
+
+prompts:
+  - role: system
+    content: You are a helpful coding assistant.
+  - role: user
+    content: 'Write a function that returns {{task}}'
+
+providers:
+  - openai/gpt-4o-mini
+  - anthropic/claude-3-haiku
+
+tests:
+  - description: Test Fibonacci Function
+    vars:
+      task: 'the nth Fibonacci number'
+    expected: 'fibonacci'
+    assert:
+      - type: contains
+        value: 'fibonacci'
+        weight: 1.0
+      - type: llm-judge
+        value: 'Is this a correct implementation of Fibonacci?'
+        threshold: 0.8
+
+  - description: Test Factorial Function  
+    vars:
+      task: 'the factorial of a number'
+    expected: 'factorial'
+    assert:
+      - type: contains
+        value: 'factorial'
+        weight: 1.0
+
+config:
+  iterations: 2
+  parallel: true
+  timeout: 30000
+  costLimit: 10.0
