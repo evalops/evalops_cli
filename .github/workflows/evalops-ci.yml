@@ -28,7 +28,11 @@ jobs:
           node-version: '20'
 
       - name: Install EvalOps CLI
-        run: npm install -g evalops-cli
+        run: |
+          npm install
+          npm run build
+          npm pack
+          npm install -g ./evalops-cli-*.tgz
 
       - name: Calculate Cost Estimate
         id: cost
@@ -95,7 +99,11 @@ jobs:
           node-version: '20'
 
       - name: Install EvalOps CLI
-        run: npm install -g evalops-cli
+        run: |
+          npm install
+          npm run build
+          npm pack
+          npm install -g ./evalops-cli-*.tgz
 
       - name: Deploy Evaluation
         env:
